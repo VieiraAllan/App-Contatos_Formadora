@@ -32,6 +32,7 @@ export default function HomeScreen() {
   const [loadingApi, setLoadingApi] = useState(true);
   const [loadingDb, setLoadingDb] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [refreshingApi, setRefreshingApi] = useState(false);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -41,15 +42,24 @@ export default function HomeScreen() {
     fetchDbContacts();
   }, []);
 
-  async function fetchApiContacts() {
+  async function fetchApiContacts(showRefresh = false) {
     try {
+      if (showRefresh) {
+        setRefreshingApi(true);
+      } else {
+        setLoadingApi(true);
+      }
+
       const response = await fetch('https://jsonplaceholder.typicode.com/users');
       const data: ApiUser[] = await response.json();
+
       setApiContacts(data);
     } catch (error) {
       console.log('Erro ao buscar API:', error);
+      Alert.alert('Erro', 'Não foi possível atualizar os contatos da API.');
     } finally {
       setLoadingApi(false);
+      setRefreshingApi(false);
     }
   }
 
@@ -120,9 +130,7 @@ export default function HomeScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>App de Contatos</Text>
-      <Text style={styles.subtitle}>
-        Dev.: Állan R. Vieira
-      </Text>
+      <Text style={styles.subtitle}>Dev.: Állan R. Vieira</Text>
 
       <View style={styles.formCard}>
         <Text style={styles.sectionTitle}>Adicionar contato no Supabase</Text>
@@ -155,7 +163,22 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Contatos da API</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Usuários da API</Text>
+
+          <TouchableOpacity
+            style={[
+              styles.refreshButton,
+              refreshingApi && styles.buttonDisabled,
+            ]}
+            onPress={() => fetchApiContacts(true)}
+            disabled={refreshingApi}
+          >
+            <Text style={styles.refreshButtonText}>
+              {refreshingApi ? 'Atualizando...' : 'Atualizar contatos da API'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {loadingApi ? (
           <ActivityIndicator size="large" color="#2563eb" />
@@ -222,6 +245,9 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
+  sectionHeader: {
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -242,6 +268,17 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
+  },
+  refreshButton: {
+    backgroundColor: '#10b981',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  refreshButtonText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
   },
   buttonDisabled: {
     opacity: 0.7,

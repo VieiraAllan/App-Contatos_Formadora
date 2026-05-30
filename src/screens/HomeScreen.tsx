@@ -34,6 +34,9 @@ export default function HomeScreen() {
   const [saving, setSaving] = useState(false);
   const [refreshingApi, setRefreshingApi] = useState(false);
 
+  const [importingAll, setImportingAll] = useState(false);
+  const [importingIds, setImportingIds] = useState<number[]>([]);
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
 
@@ -127,13 +130,72 @@ export default function HomeScreen() {
     }
   }
 
+  async function handleImportSingleContact(contact: ApiUser) {
+    try {
+      setImportingIds((prev) => [...prev, contact.id]);
+
+      const { error } = await supabase.from('contacts').upsert(
+        {
+          name: contact.name,
+          email: contact.email.toLowerCase(),
+        },
+        {
+          onConflict: 'email',
+          ignoreDuplicates: true,
+        }
+      );
+
+      if (error) throw error;
+
+      await fetchDbContacts();
+      Alert.alert('Sucesso', `${contact.name} foi enviado para o banco.`);
+    } catch (error: any) {
+      Alert.alert(
+        'Erro',
+        error?.message || 'Não foi possível adicionar o contato ao banco.'
+      );
+      console.log(error);
+    } finally {
+      setImportingIds((prev) => prev.filter((id) => id !== contact.id));
+    }
+  }
+
+  async function handleImportAllApiContacts() {
+    try {
+      setImportingAll(true);
+
+      const payload = apiContacts.map((contact) => ({
+        name: contact.name,
+        email: contact.email.toLowerCase(),
+      }));
+
+      const { error } = await supabase.from('contacts').upsert(payload, {
+        onConflict: 'email',
+        ignoreDuplicates: true,
+      });
+
+      if (error) throw error;
+
+      await fetchDbContacts();
+      Alert.alert('Sucesso', 'Todos os contatos da API foram enviados ao banco.');
+    } catch (error: any) {
+      Alert.alert(
+        'Erro',
+        error?.message || 'Não foi possível importar todos os contatos.'
+      );
+      console.log(error);
+    } finally {
+      setImportingAll(false);
+    }
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>App de Contatos</Text>
-      <Text style={styles.subtitle}>Dev.: Állan R. Vieira</Text>
+      <Text style={styles.subtitle}>API + Supabase na mesma tela</Text>
 
       <View style={styles.formCard}>
-        <Text style={styles.sectionTitle}>Adicionar contato no Supabase</Text>
+        <Text style={styles.sectionTitle}>Adicionar contato manualmente</Text>
 
         <TextInput
           style={styles.input}
@@ -178,6 +240,19 @@ export default function HomeScreen() {
               {refreshingApi ? 'Atualizando...' : 'Atualizar contatos da API'}
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.importAllButton,
+              (importingAll || apiContacts.length === 0) && styles.buttonDisabled,
+            ]}
+            onPress={handleImportAllApiContacts}
+            disabled={importingAll || apiContacts.length === 0}
+          >
+            <Text style={styles.refreshButtonText}>
+              {importingAll ? 'Importando todos...' : 'Adicionar todos ao banco'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {loadingApi ? (
@@ -189,6 +264,8 @@ export default function HomeScreen() {
               name={item.name}
               email={item.email}
               source="api"
+              adding={importingIds.includes(item.id)}
+              onAdd={() => handleImportSingleContact(item)}
             />
           ))
         )}
@@ -247,6 +324,7 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     marginBottom: 12,
+    gap: 10,
   },
   sectionTitle: {
     fontSize: 18,
@@ -271,6 +349,13 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     backgroundColor: '#10b981',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  importAllButton: {
+    backgroundColor: '#7c3aed',
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 10,

@@ -6,6 +6,8 @@ type ContactCardProps = {
   email: string;
   source?: 'api' | 'supabase';
   onDelete?: () => void;
+  onAdd?: () => void;
+  adding?: boolean;
 };
 
 export default function ContactCard({
@@ -13,6 +15,8 @@ export default function ContactCard({
   email,
   source = 'api',
   onDelete,
+  onAdd,
+  adding = false,
 }: ContactCardProps) {
   return (
     <View style={styles.card}>
@@ -24,9 +28,21 @@ export default function ContactCard({
         </Text>
       </View>
 
+      {source === 'api' && onAdd ? (
+        <TouchableOpacity
+          style={[styles.addButton, adding && styles.buttonDisabled]}
+          onPress={onAdd}
+          disabled={adding}
+        >
+          <Text style={styles.actionText}>
+            {adding ? 'Adicionando...' : 'Adicionar'}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
+
       {source === 'supabase' && onDelete ? (
         <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
-          <Text style={styles.deleteText}>Excluir</Text>
+          <Text style={styles.actionText}>Excluir</Text>
         </TouchableOpacity>
       ) : null}
     </View>
@@ -61,14 +77,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 12,
   },
+  addButton: {
+    backgroundColor: '#10b981',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
   deleteButton: {
     backgroundColor: '#ef4444',
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 10,
   },
-  deleteText: {
+  actionText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
 });

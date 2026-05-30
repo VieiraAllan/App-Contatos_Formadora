@@ -219,7 +219,7 @@ Na entrega, mostre:
 ---
 
 ## 👨‍💻 Autor
+Állan R. Vieira
 
+---
 Projeto desenvolvido como atividade prática de **React Native + Expo + Supabase + Git**.
-
-Se desejar, você pode editar esta seção com seu nome e link do GitHub.
